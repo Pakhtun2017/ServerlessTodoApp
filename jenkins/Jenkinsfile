@@ -77,7 +77,8 @@ pipeline {
                         terraform apply -auto-approve \
                         -var="region=${params.AWS_DEFAULT_REGION}" \
                         -var="domain_name=${params.DOMAIN_NAME}" \
-                        -var="zone_id=${params.ZONE_ID}"
+                        -var="zone_id=${params.ZONE_ID}" \
+                        -var="lambda_zip_file=../lambda_function.zip"
                         """
                     }
                 }
@@ -150,7 +151,8 @@ pipeline {
                             terraform apply -auto-approve \
                             -var="region=${params.AWS_DEFAULT_REGION}" \
                             -var="domain_name=${params.DOMAIN_NAME}" \
-                            -var="zone_id=${params.ZONE_ID}"
+                            -var="zone_id=${params.ZONE_ID}" \
+                            -var="lambda_zip_file=../lambda_function.zip"
                             """
                         }
                     }

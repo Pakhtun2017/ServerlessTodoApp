@@ -28,6 +28,11 @@ variable "lambda_app_name" {
   default     = "todo-app-lambda"
 }
 
+variable "lambda_zip_file" {
+  description = "Path to the lambda function zip file"
+  type        = string
+}
+
 variable "domain_name" {
   description = "The custom domain name for the API"
   type        = string
