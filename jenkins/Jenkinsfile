@@ -59,18 +59,6 @@ pipeline {
             }
         }
 
-        stage('Verify AWS Credentials') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws_credentials_id',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    sh 'aws sts get-caller-identity'
-                }
-            }
-        }
         stage('Terraform Init') {
             steps {
                 withCredentials([[
