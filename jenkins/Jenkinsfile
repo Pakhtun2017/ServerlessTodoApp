@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1'
+        AWS_DEFAULT_REGION = params.AWS_DEFAULT_REGION
     }
 
     parameters {
@@ -25,18 +25,8 @@ pipeline {
         stage('Setup Python Environment') {
             steps {
                 sh '''
-                # Update GPG keys
-                sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
-                sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 5BA31D57EF5975CA
-
-                # Remove duplicate entries
-                sudo sed -i '/^deb cdrom:/d' /etc/apt/sources.list
-                sudo find /etc/apt/sources.list.d -type f -exec sed -i '/^deb cdrom:/d' {} \\;
-
-                # Update package lists
-                sudo apt-get update
-
                 # Install the desired Python version (e.g., Python 3.12)
+                sudo apt-get update
                 sudo apt-get install -y python3.12 python3.12-venv
 
                 # Create a new virtual environment using Python 3.12
@@ -47,7 +37,7 @@ pipeline {
 
                 # Upgrade pip and install required packages
                 pip install --upgrade pip
-                pip install -r requirements.txt
+                pip install Flask==2.0.1 boto3 awsgi
                 '''
             }
         }
@@ -58,8 +48,35 @@ pipeline {
                     credentialsId: 'github-credentials'
             }
         }
-
-        stage('Terraform Init') {
+        stage('Package Lambda Function') {
+            steps {
+                script {
+                    // Package the Lambda function code
+                    sh '''
+                    . venv/bin/activate
+                    zip -r lambda_function.zip lambda_function.py app/tasks.py app/app.py venv/lib/python3.12/site-packages
+                    '''
+                }
+            }
+        }
+        stage('Upload to S3') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws_credentials_id',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        // Upload the Lambda package to S3 using the dynamically retrieved bucket name
+                        sh '''
+                        aws s3 cp lambda_function.zip s3://${S3_BUCKET_NAME}/lambda_function.zip
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Terraform Init and Apply Initial') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -69,27 +86,12 @@ pipeline {
                 ]]) {
                     dir('terraform') {
                         sh 'terraform init'
-                    }
-                }
-            }
-        }
-        stage('Terraform Apply Initial') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws_credentials_id',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    script {
-                        dir('terraform') {
-                            sh """
-                            terraform apply -auto-approve \
-                            -var="region=${params.AWS_DEFAULT_REGION}" \
-                            -var="domain_name=${params.DOMAIN_NAME}" \
-                            -var="zone_id=${params.ZONE_ID}"
-                            """
-                        }
+                        sh """
+                        terraform apply -auto-approve \
+                        -var="region=${params.AWS_DEFAULT_REGION}" \
+                        -var="domain_name=${params.DOMAIN_NAME}" \
+                        -var="zone_id=${params.ZONE_ID}"
+                        """
                     }
                 }
             }
@@ -117,34 +119,6 @@ pipeline {
                         env.AWS_REGION = region
                         env.DOMAIN_NAME = domain_name
                         env.CERTIFICATE_ARN = certificate_arn
-                    }
-                }
-            }
-        }
-        stage('Package Lambda Function') {
-            steps {
-                script {
-                    // Package the Lambda function code
-                    sh '''
-                    . venv/bin/activate
-                    zip -r lambda_function.zip lambda_function.py app/ venv/lib/python3.12/site-packages
-                    '''
-                }
-            }
-        }
-        stage('Upload to S3') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws_credentials_id',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    script {
-                        // Upload the Lambda package to S3 using the dynamically retrieved bucket name
-                        sh '''
-                        aws s3 cp lambda_function.zip s3://${S3_BUCKET_NAME}/lambda_function.zip
-                        '''
                     }
                 }
             }

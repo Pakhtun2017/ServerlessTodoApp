@@ -2,6 +2,8 @@ provider "aws" {
   region = var.region
 }
 
+data "aws_caller_identity" "current" {}
+
 # Check if DynamoDB table already exists
 data "aws_dynamodb_table" "existing_table" {
   name = var.dynamodb_table_name
@@ -92,18 +94,17 @@ resource "aws_iam_role_policy" "s3_access" {
 
 # IAM Policy for DynamoDB Access
 resource "aws_iam_role_policy" "dynamodb_access" {
-  count = length(data.aws_iam_role.existing_role.arn) > 0 ? 0 : 1
-  name  = "lambda-dynamodb-access-policy"
-  role  = aws_iam_role.lambda_exec[0].id
+  name = "lambda-dynamodb-access-policy"
+  role = aws_iam_role.lambda_exec.id
 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = [
-          "dynamodb:PutItem",
+        Effect = "Allow",
+        Action = [
           "dynamodb:Scan",
+          "dynamodb:PutItem",
           "dynamodb:DeleteItem"
         ],
         Resource = [
