@@ -1,14 +1,14 @@
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'DOMAIN_NAME', defaultValue: 'api.tolstoynow.com', description: 'The domain name for the API Gateway')
-        string(name: 'ZONE_ID', defaultValue: 'YOUR_ROUTE_53_ZONE_ID', description: 'The Route 53 Zone ID for the domain')
-        string(name: 'AWS_DEFAULT_REGION', defaultValue: 'us-east-1', description: 'The AWS region to use')
+    environment {
+        AWS_DEFAULT_REGION = 'us-east-1'
     }
 
-    environment {
-        AWS_DEFAULT_REGION = "${params.AWS_DEFAULT_REGION}"
+    parameters {
+        string(name: 'DOMAIN_NAME', description: 'The domain name for the API Gateway')
+        string(name: 'ZONE_ID', description: 'The Route 53 Zone ID for the domain')
+        string(name: 'AWS_DEFAULT_REGION', description: 'The AWS region to use')
     }
 
     stages {
@@ -37,7 +37,7 @@ pipeline {
 
                 # Upgrade pip and install required packages
                 pip install --upgrade pip
-                pip install Flask==2.0.1 boto3 awsgi
+                pip install -r requirements.txt
                 '''
             }
         }
@@ -102,14 +102,23 @@ pipeline {
                     dir('terraform') {
                         def s3_bucket_name = sh(script: 'terraform output -raw s3_bucket_name', returnStdout: true).trim()
                         def lambda_role_name = sh(script: 'terraform output -raw lambda_role_name', returnStdout: true).trim()
+                        def region = sh(script: 'terraform output -raw region', returnStdout: true).trim()
+                        def domain_name = sh(script: 'terraform output -raw domain_name', returnStdout: true).trim()
+                        def certificate_arn = sh(script: 'terraform output -raw certificate_arn', returnStdout: true).trim()
 
                         // Debug output values
                         echo "S3 Bucket Name: ${s3_bucket_name}"
                         echo "Lambda Role Name: ${lambda_role_name}"
+                        echo "AWS Region: ${region}"
+                        echo "Domain Name: ${domain_name}"
+                        echo "Certificate ARN: ${certificate_arn}"
 
                         // Store the outputs in environment variables
                         env.S3_BUCKET_NAME = s3_bucket_name
                         env.LAMBDA_ROLE_NAME = lambda_role_name
+                        env.AWS_REGION = region
+                        env.DOMAIN_NAME = domain_name
+                        env.CERTIFICATE_ARN = certificate_arn
                     }
                 }
             }
@@ -120,7 +129,7 @@ pipeline {
                     // Package the Lambda function code
                     sh '''
                     . venv/bin/activate
-                    zip -r lambda_function.zip app.py lambda_function.py tasks.py venv/lib/python3.12/site-packages
+                    zip -r lambda_function.zip lambda_function.py app/ venv/lib/python3.12/site-packages
                     '''
                 }
             }
