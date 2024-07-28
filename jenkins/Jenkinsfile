@@ -54,7 +54,11 @@ pipeline {
                     // Package the Lambda function code
                     sh '''
                     . venv/bin/activate
-                    zip -r lambda_function.zip lambda_function.py app/tasks.py app/app.py venv/lib/python3.12/site-packages
+                    mkdir -p package
+                    cp -r lambda_function.py app/* package/
+                    cd package
+                    zip -r ../lambda_function.zip .
+                    cd ..
                     '''
                 }
             }
@@ -106,6 +110,9 @@ pipeline {
                         // Debug environment variables
                         echo "Environment S3_BUCKET_NAME: ${env.S3_BUCKET_NAME}"
                         echo "Environment LAMBDA_ROLE_NAME: ${env.LAMBDA_ROLE_NAME}"
+                        echo "Environment AWS_REGION: ${env.AWS_REGION}"
+                        echo "Environment DOMAIN_NAME: ${env.DOMAIN_NAME}"
+                        echo "Environment CERTIFICATE_ARN: ${env.CERTIFICATE_ARN}"
                     }
                 }
             }
