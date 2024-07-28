@@ -94,8 +94,9 @@ resource "aws_iam_role_policy" "s3_access" {
 
 # IAM Policy for DynamoDB Access
 resource "aws_iam_role_policy" "dynamodb_access" {
-  name = "lambda-dynamodb-access-policy"
-  role = aws_iam_role.lambda_exec.id
+  count = length(data.aws_iam_role.existing_role.arn) > 0 ? 0 : 1
+  name  = "lambda-dynamodb-access-policy"
+  role  = aws_iam_role.lambda_exec[0].id
 
   policy = jsonencode({
     Version = "2012-10-17",
