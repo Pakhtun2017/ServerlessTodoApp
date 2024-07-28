@@ -66,22 +66,22 @@ git clone https://github.com/yourusername/ServerlessTodoApp.git
 cd ServerlessTodoApp
 
 2. Set up virtual environment:
-python3.12 -m venv venv
-source venv/bin/activate
-pip install -r app/requirements.txt
+* python3.12 -m venv venv
+* source venv/bin/activate
+* pip install -r app/requirements.txt
 
 3. Configure AWS CLI:
-aws configure
+* aws configure
 
 4. Initialize Terraform:
-cd terraform
-terraform init
+* cd terraform
+* terraform init
 
 Running Locally
 
 1. Start Flask application:
-cd app
-flask run
+* cd app
+* flask run
 
 2. Access the application:
 Open your browser and navigate to http://127.0.0.1:5000
@@ -90,15 +90,15 @@ Open your browser and navigate to http://127.0.0.1:5000
 Deployment
 
 1. Package Lambda Function:
-cd app
-zip -r lambda_function.zip app.py lambda_function.py tasks.py venv/lib/python3.12/site-packages
+* cd app
+* zip -r lambda_function.zip app.py lambda_function.py tasks.py venv/lib/python3.12/site-packages
 
 2. Upload to S3:
-aws s3 cp lambda_function.zip s3://your-bucket-name/lambda_function.zip
+* aws s3 cp lambda_function.zip s3://your-bucket-name/lambda_function.zip
 
 3. Run Terraform Apply:
-cd terraform
-terraform apply -auto-approve \
+* cd terraform
+* terraform apply -auto-approve \
 -var="region=us-east-1" \
 -var="domain_name=api.tolstoynow.com" \
 -var="zone_id=YOUR_ROUTE_53_ZONE_ID"

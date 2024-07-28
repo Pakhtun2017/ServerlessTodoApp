@@ -1,9 +1,14 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'DOMAIN_NAME', defaultValue: 'api.tolstoynow.com', description: 'The domain name for the API Gateway')
+        string(name: 'ZONE_ID', defaultValue: 'YOUR_ROUTE_53_ZONE_ID', description: 'The Route 53 Zone ID for the domain')
+        string(name: 'AWS_DEFAULT_REGION', defaultValue: 'us-east-1', description: 'The AWS region to use')
+    }
+
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1'
-																				
+        AWS_DEFAULT_REGION = "${params.AWS_DEFAULT_REGION}"
     }
 
     stages {
@@ -11,8 +16,9 @@ pipeline {
             steps {
                 script {
                     echo "Debugging Environment Variables..."
-                    echo "AWS_DEFAULT_REGION: ${env.AWS_DEFAULT_REGION}"
-																
+                    echo "AWS_DEFAULT_REGION: ${params.AWS_DEFAULT_REGION}"
+                    echo "DOMAIN_NAME: ${params.DOMAIN_NAME}"
+                    echo "ZONE_ID: ${params.ZONE_ID}"
                 }
             }
         }
@@ -20,7 +26,6 @@ pipeline {
             steps {
                 sh '''
                 # Install the desired Python version (e.g., Python 3.12)
-                # Adjust the command below to install Python if it's not already available
                 sudo apt-get update
                 sudo apt-get install -y python3.12 python3.12-venv
 
@@ -38,7 +43,7 @@ pipeline {
         }
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/Pakhtun2017/todo-flask-lambda.git',
+                git url: 'https://github.com/Pakhtun2017/ServerlessTodoApp.git',
                     branch: 'main',
                     credentialsId: 'github-credentials'
             }
@@ -53,35 +58,6 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     sh 'aws sts get-caller-identity'
-                }
-            }
-        }
-        stage('Package Lambda Function') {
-            steps {
-                script {
-                    // Package the Lambda function code
-                    sh '''
-                    . venv/bin/activate
-                    zip -r lambda_function.zip app.py lambda_function.py tasks.py venv/lib/python3.8/site-packages
-                    '''
-                }
-            }
-        }
-        stage('Upload to S3') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws_credentials_id',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    script {
-                        // Upload the Lambda package to S3
-                        sh '''
-                        aws s3 cp lambda_function.zip s3://your-bucket-name/lambda_function.zip
-															
-                        '''
-                    }
                 }
             }
         }
@@ -111,12 +87,57 @@ pipeline {
                         dir('terraform') {
                             sh """
                             terraform apply -auto-approve \
-                            -var="region=${env.AWS_DEFAULT_REGION}" \
-                            -var="domain_name=api.tolstoynow.com" \
-                            -var="zone_id=YOUR_ROUTE_53_ZONE_ID" \
-                            -var="final_stage=false"
+                            -var="region=${params.AWS_DEFAULT_REGION}" \
+                            -var="domain_name=${params.DOMAIN_NAME}" \
+                            -var="zone_id=${params.ZONE_ID}"
                             """
                         }
+                    }
+                }
+            }
+        }
+        stage('Retrieve Terraform Outputs') {
+            steps {
+                script {
+                    dir('terraform') {
+                        def s3_bucket_name = sh(script: 'terraform output -raw s3_bucket_name', returnStdout: true).trim()
+                        def lambda_role_name = sh(script: 'terraform output -raw lambda_role_name', returnStdout: true).trim()
+
+                        // Debug output values
+                        echo "S3 Bucket Name: ${s3_bucket_name}"
+                        echo "Lambda Role Name: ${lambda_role_name}"
+
+                        // Store the outputs in environment variables
+                        env.S3_BUCKET_NAME = s3_bucket_name
+                        env.LAMBDA_ROLE_NAME = lambda_role_name
+                    }
+                }
+            }
+        }
+        stage('Package Lambda Function') {
+            steps {
+                script {
+                    // Package the Lambda function code
+                    sh '''
+                    . venv/bin/activate
+                    zip -r lambda_function.zip app.py lambda_function.py tasks.py venv/lib/python3.12/site-packages
+                    '''
+                }
+            }
+        }
+        stage('Upload to S3') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws_credentials_id',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        // Upload the Lambda package to S3 using the dynamically retrieved bucket name
+                        sh '''
+                        aws s3 cp lambda_function.zip s3://${S3_BUCKET_NAME}/lambda_function.zip
+                        '''
                     }
                 }
             }
@@ -134,10 +155,9 @@ pipeline {
                             // Apply Terraform configuration to create Lambda, API Gateway, and other resources
                             sh """
                             terraform apply -auto-approve \
-                            -var="region=${env.AWS_DEFAULT_REGION}" \
-                            -var="domain_name=api.tolstoynow.com" \
-                            -var="zone_id=YOUR_ROUTE_53_ZONE_ID" \
-                            -var="final_stage=true"
+                            -var="region=${params.AWS_DEFAULT_REGION}" \
+                            -var="domain_name=${params.DOMAIN_NAME}" \
+                            -var="zone_id=${params.ZONE_ID}"
                             """
                         }
                     }

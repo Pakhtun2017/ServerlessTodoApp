@@ -1,10 +1,13 @@
-from app import app
-from flask import request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for
 from tasks import add_task, list_tasks, remove_task
+
+app = Flask(__name__)
 
 @app.route('/')
 def index():
     tasks = list_tasks()
+    # render_template takes the template file index.html 
+    # and the tasks data, and combines them to produce the final HTML.
     return render_template('index.html', tasks=tasks)
 
 @app.route('/add', methods=['POST'])

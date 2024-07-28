@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Todo List</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            font-size: 28px;
+            /* Increased font size for the whole body */
+            padding: 20px;
+            /* Add padding for better appearance on small screens */
+            background-color: #add8e6;
+            /* Light blue background color */
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            /* Limit the width to make it look good on larger screens */
+            width: 100%;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 20px 0;
+            /* Increased spacing between list items */
+        }
+
+        .task {
+            text-transform: capitalize;
+            /* Capitalizes the first letter of each word */
+            font-size: 32px;
+            /* Larger font size for tasks */
+        }
+
+        form {
+            margin-top: 30px;
+            /* Increased margin above the form */
+            font-size: 28px;
+            /* Larger font size for the form */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type="text"],
+        input[type="submit"] {
+            font-size: 28px;
+            /* Larger font size for the input text and submit button */
+            width: 100%;
+            /* Full width for both elements */
+            padding: 15px;
+            /* Larger padding for both elements */
+            box-sizing: border-box;
+            /* Ensure padding is included in the width */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Todo List</h1>
+        <ul>
+            {% for item in tasks %}
+            <li><span>{{ loop.index }}. </span><span class="task">{{ item.task }}</span> <a
+                    href="{{ url_for('remove', task_id=item.id) }}">Remove</a></li>
+            {% endfor %}
+        </ul>
+        <form action="{{ url_for('add') }}" method="post">
+            <input type="text" name="task" placeholder="New task" required>
+            <input type="submit" value="Add">
+        </form>
+    </div>
+</body>
+
+</html>
