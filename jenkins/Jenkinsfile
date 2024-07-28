@@ -25,8 +25,18 @@ pipeline {
         stage('Setup Python Environment') {
             steps {
                 sh '''
-                # Install the desired Python version (e.g., Python 3.12)
+                # Update GPG keys
+                sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
+                sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 5BA31D57EF5975CA
+
+                # Remove duplicate entries
+                sudo sed -i '/^deb cdrom:/d' /etc/apt/sources.list
+                sudo find /etc/apt/sources.list.d -type f -exec sed -i '/^deb cdrom:/d' {} \\;
+
+                # Update package lists
                 sudo apt-get update
+
+                # Install the desired Python version (e.g., Python 3.12)
                 sudo apt-get install -y python3.12 python3.12-venv
 
                 # Create a new virtual environment using Python 3.12
