@@ -63,6 +63,24 @@ pipeline {
                 }
             }
         }
+        stage('Upload to S3') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws_credentials_id',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        // Upload the Lambda package to S3 using the dynamically retrieved bucket name
+                        sh '''
+                        echo "Uploading to S3 bucket: ${S3_BUCKET_NAME}"
+                        aws s3 cp lambda_function.zip s3://${S3_BUCKET_NAME}/lambda_function.zip
+                        '''
+                    }
+                }
+            }
+        }
         stage('Terraform Init and Apply Initial') {
             steps {
                 withCredentials([[
@@ -114,24 +132,6 @@ pipeline {
                         echo "Environment AWS_REGION: ${env.AWS_REGION}"
                         echo "Environment DOMAIN_NAME: ${env.DOMAIN_NAME}"
                         echo "Environment CERTIFICATE_ARN: ${env.CERTIFICATE_ARN}"
-                    }
-                }
-            }
-        }
-        stage('Upload to S3') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws_credentials_id',
-                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
-                ]]) {
-                    script {
-                        // Upload the Lambda package to S3 using the dynamically retrieved bucket name
-                        sh '''
-                        echo "Uploading to S3 bucket: ${S3_BUCKET_NAME}"
-                        aws s3 cp lambda_function.zip s3://${S3_BUCKET_NAME}/lambda_function.zip
-                        '''
                     }
                 }
             }
