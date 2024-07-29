@@ -87,10 +87,12 @@ resource "aws_iam_role_policy" "s3_access" {
   })
 }
 
+data "aws_caller_identity" "current" {}
+
 
 # IAM Policy for DynamoDB Access
 resource "aws_iam_role_policy" "dynamodb_access" {
-  count = length(data.aws_iam_role.existing_role.arn) > 0 ? 0 : 1
+  count = local.iam_role_exists ? 0 : 1
   name  = "lambda-dynamodb-access-policy"
   role  = aws_iam_role.lambda_exec[0].id
 
@@ -111,6 +113,23 @@ resource "aws_iam_role_policy" "dynamodb_access" {
     ]
   })
 }
+
+# Generate a random string to append to the bucket name
+resource "random_id" "bucket_suffix" {
+  byte_length = 4
+}
+
+# S3 Bucket
+resource "aws_s3_bucket" "s3_todo_bucket" {
+  bucket        = "${var.project_name}-${var.environment}-${random_id.bucket_suffix.hex}"
+  force_destroy = true
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-bucket"
+    Environment = var.environment
+  }
+}
+
 
 # Data source to check for existing ACM certificate
 data "aws_acm_certificate" "existing_cert" {
