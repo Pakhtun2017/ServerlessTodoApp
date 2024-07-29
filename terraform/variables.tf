@@ -43,3 +43,27 @@ variable "zone_id" {
   type        = string
   default     = "Z01416203FPOMCB5W0JRJ"
 }
+
+variable "lambda_role_name" {
+  description = "Name of Lambda role"
+  type        = string
+  default     = "todo-app-lambda-role"
+}
+
+variable "lambda_s3_policy_name" {
+  description = "Lambda S3 Policy name"
+  type        = string
+  default     = "lambda-s3-access-policy"
+}
+
+variable "lambda_dynamodb_policy_name" {
+  description = "Lambda DynamoDB Policy name"
+  type        = string
+  default     = "lambda-dynamodb-access-policy"
+}
+
+variable "api_gateway_api_name" {
+  description = "API Gateway API name"
+  type        = string
+  default     = "TodoAPI"
+}

@@ -2,6 +2,8 @@ provider "aws" {
   region = var.region
 }
 
+data "aws_caller_identity" "current" {}
+
 # Check if DynamoDB table already exists
 data "aws_dynamodb_table" "existing_table" {
   count = 1
@@ -29,7 +31,7 @@ resource "aws_dynamodb_table" "todo_table" {
 # Check if IAM Role already exists
 data "aws_iam_role" "existing_role" {
   count = 1
-  name  = "todo-app-lambda-role"
+  name  = var.lambda_role_name
 }
 
 # Local variable to check if the IAM role exists
@@ -40,13 +42,13 @@ locals {
 # Create IAM Role for Lambda if it does not exist
 resource "aws_iam_role" "lambda_exec" {
   count = local.iam_role_exists ? 0 : 1
-  name  = "todo-app-lambda-role"
+  name  = var.lambda_role_name
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
         Principal = {
           Service = "lambda.amazonaws.com"
         }
@@ -65,15 +67,15 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
 # IAM Policy for S3 Access
 resource "aws_iam_role_policy" "s3_access" {
   count = local.iam_role_exists ? 0 : 1
-  name  = "lambda-s3-access-policy"
+  name  = var.lambda_s3_policy_name
   role  = aws_iam_role.lambda_exec[0].id
 
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket"
@@ -87,13 +89,10 @@ resource "aws_iam_role_policy" "s3_access" {
   })
 }
 
-data "aws_caller_identity" "current" {}
-
-
 # IAM Policy for DynamoDB Access
 resource "aws_iam_role_policy" "dynamodb_access" {
   count = local.iam_role_exists ? 0 : 1
-  name  = "lambda-dynamodb-access-policy"
+  name  = var.lambda_dynamodb_policy_name
   role  = aws_iam_role.lambda_exec[0].id
 
   policy = jsonencode({
@@ -200,7 +199,7 @@ resource "aws_lambda_function" "todo_lambda" {
 
 # API Gateway
 resource "aws_api_gateway_rest_api" "todo_api" {
-  name        = "TodoAPI"
+  name        = var.api_gateway_api_name
   description = "API for Todo Application"
 }
 
