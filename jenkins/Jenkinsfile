@@ -75,7 +75,7 @@ pipeline {
                     dir('terraform') {
                         sh 'terraform init'
                         script {
-                            def lambdaZipFile = "../lambda_function.zip"
+                            def lambdaZipFile = "../package/lambda_function.zip"
                             echo "Lambda ZIP file path: ${lambdaZipFile}"
                             sh """
                             terraform apply -auto-approve \
