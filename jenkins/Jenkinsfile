@@ -74,13 +74,17 @@ pipeline {
                 ]]) {
                     dir('terraform') {
                         sh 'terraform init'
-                        sh """
-                        terraform apply -auto-approve \
-                        -var="region=${params.AWS_DEFAULT_REGION}" \
-                        -var="domain_name=${params.DOMAIN_NAME}" \
-                        -var="zone_id=${params.ZONE_ID}" \
-                        -var="lambda_zip_file=../package/lambda_function.zip"
-                        """
+                        script {
+                            def lambdaZipFile = "../lambda_function.zip"
+                            echo "Lambda ZIP file path: ${lambdaZipFile}"
+                            sh """
+                            terraform apply -auto-approve \
+                            -var="region=${params.AWS_DEFAULT_REGION}" \
+                            -var="domain_name=${params.DOMAIN_NAME}" \
+                            -var="zone_id=${params.ZONE_ID}" \
+                            -var="lambda_zip_file=${lambdaZipFile}"
+                            """
+                        }
                     }
                 }
             }
@@ -153,7 +157,7 @@ pipeline {
                             -var="region=${params.AWS_DEFAULT_REGION}" \
                             -var="domain_name=${params.DOMAIN_NAME}" \
                             -var="zone_id=${params.ZONE_ID}" \
-                            -var="lambda_zip_file=../package/lambda_function.zip"
+                            -var="lambda_zip_file=../lambda_function.zip"
                             """
                         }
                     }

@@ -172,7 +172,7 @@ resource "aws_lambda_function" "todo_lambda" {
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.12"
   timeout          = 30
-  source_code_hash = filebase64sha256("../package/lambda_function.zip")
+  source_code_hash = filebase64sha256("lambda_function.zip")
   filename         = var.lambda_zip_file
 
   environment {
