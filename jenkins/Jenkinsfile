@@ -60,6 +60,9 @@ pipeline {
                     zip -r ../lambda_function.zip .
                     cd ..
                     '''
+
+                    // Verify the zip file is created
+                    sh 'ls -l lambda_function.zip'
                 }
             }
         }
@@ -73,18 +76,18 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     dir('terraform') {
+                        // Verify current working directory
+                        sh 'pwd'
+                        // Verify contents of the parent directory
+                        sh 'ls -l ../'
                         sh 'terraform init'
-                        script {
-                            def lambdaZipFile = "../lambda_function.zip"
-                            echo "Lambda ZIP file path: ${lambdaZipFile}"
-                            sh """
-                            terraform apply -auto-approve \
-                            -var="region=${params.AWS_DEFAULT_REGION}" \
-                            -var="domain_name=${params.DOMAIN_NAME}" \
-                            -var="zone_id=${params.ZONE_ID}" \
-                            -var="lambda_zip_file=${lambdaZipFile}"
-                            """
-                        }
+                        sh """
+                        terraform apply -auto-approve \
+                        -var="region=${params.AWS_DEFAULT_REGION}" \
+                        -var="domain_name=${params.DOMAIN_NAME}" \
+                        -var="zone_id=${params.ZONE_ID}" \
+                        -var="lambda_zip_file=../lambda_function.zip"
+                        """
                     }
                 }
             }
