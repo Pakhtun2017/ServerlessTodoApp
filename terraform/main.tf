@@ -50,8 +50,8 @@ resource "aws_iam_role" "lambda_exec" {
     Version = "2012-10-17",
     Statement = [
       {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
         Principal = {
           Service = "lambda.amazonaws.com"
         }
@@ -77,8 +77,8 @@ resource "aws_iam_role_policy" "s3_access" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket"
@@ -172,7 +172,7 @@ resource "aws_lambda_function" "todo_lambda" {
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.12"
   timeout          = 30
-  source_code_hash = filebase64sha256("lambda_function.zip")
+  source_code_hash = filebase64sha256("../package/lambda_function.zip")
   filename         = var.lambda_zip_file
 
   environment {
