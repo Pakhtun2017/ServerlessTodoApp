@@ -2,11 +2,9 @@ provider "aws" {
   region = var.region
 }
 
-data "aws_caller_identity" "current" {}
-
 # Check if DynamoDB table already exists
 data "aws_dynamodb_table" "existing_table" {
-  count = length(var.dynamodb_table_name) > 0 ? 1 : 0
+  count = 1
   name  = var.dynamodb_table_name
 }
 
@@ -28,25 +26,9 @@ resource "aws_dynamodb_table" "todo_table" {
   }
 }
 
-# Generate a random string to append to the bucket name
-resource "random_id" "bucket_suffix" {
-  byte_length = 4
-}
-
-# S3 Bucket
-resource "aws_s3_bucket" "s3_todo_bucket" {
-  bucket        = "${var.project_name}-${var.environment}-${random_id.bucket_suffix.hex}"
-  force_destroy = true
-
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-bucket"
-    Environment = var.environment
-  }
-}
-
 # Check if IAM Role already exists
 data "aws_iam_role" "existing_role" {
-  count = length("todo-app-lambda-role") > 0 ? 1 : 0
+  count = 1
   name  = "todo-app-lambda-role"
 }
 
@@ -55,16 +37,16 @@ locals {
   iam_role_exists = try(length(data.aws_iam_role.existing_role[0].id) > 0, false)
 }
 
-# IAM Role for Lambda
+# Create IAM Role for Lambda if it does not exist
 resource "aws_iam_role" "lambda_exec" {
-  count = length(data.aws_iam_role.existing_role.arn) > 0 ? 0 : 1
+  count = local.iam_role_exists ? 0 : 1
   name  = "todo-app-lambda-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
+        Action    = "sts:AssumeRole",
+        Effect    = "Allow",
         Principal = {
           Service = "lambda.amazonaws.com"
         }
@@ -75,14 +57,14 @@ resource "aws_iam_role" "lambda_exec" {
 
 # IAM Policy Attachment for Lambda
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
-  count      = length(data.aws_iam_role.existing_role.arn) > 0 ? 0 : 1
+  count      = local.iam_role_exists ? 0 : 1
   role       = aws_iam_role.lambda_exec[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 # IAM Policy for S3 Access
 resource "aws_iam_role_policy" "s3_access" {
-  count = length(data.aws_iam_role.existing_role.arn) > 0 ? 0 : 1
+  count = local.iam_role_exists ? 0 : 1
   name  = "lambda-s3-access-policy"
   role  = aws_iam_role.lambda_exec[0].id
 
@@ -90,8 +72,8 @@ resource "aws_iam_role_policy" "s3_access" {
     Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow",
-        Action = [
+        Effect   = "Allow",
+        Action   = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:ListBucket"
@@ -104,6 +86,7 @@ resource "aws_iam_role_policy" "s3_access" {
     ]
   })
 }
+
 
 # IAM Policy for DynamoDB Access
 resource "aws_iam_role_policy" "dynamodb_access" {
