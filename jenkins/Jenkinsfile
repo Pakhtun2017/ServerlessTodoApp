@@ -60,9 +60,6 @@ pipeline {
                     zip -r ../lambda_function.zip .
                     cd ..
                     '''
-
-                    // Verify the zip file is created
-                    sh 'ls -l lambda_function.zip'
                 }
             }
         }
@@ -76,18 +73,30 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     dir('terraform') {
-                        // Verify current working directory
-                        sh 'pwd'
-                        // Verify contents of the parent directory
-                        sh 'ls -l ../'
-                        sh 'terraform init'
-                        sh """
-                        terraform apply -auto-approve \
-                        -var="region=${params.AWS_DEFAULT_REGION}" \
-                        -var="domain_name=${params.DOMAIN_NAME}" \
-                        -var="zone_id=${params.ZONE_ID}" \
-                        -var="lambda_zip_file=../lambda_function.zip"
-                        """
+                        script {
+                            // Ensure parameters are set
+                            def region = params.AWS_DEFAULT_REGION
+                            def domainName = params.DOMAIN_NAME
+                            def zoneId = params.ZONE_ID
+
+                            if (!region || !domainName || !zoneId) {
+                                error("AWS_DEFAULT_REGION, DOMAIN_NAME, or ZONE_ID is not set")
+                            }
+
+                            // Debug output
+                            echo "Region: ${region}"
+                            echo "Domain Name: ${domainName}"
+                            echo "Zone ID: ${zoneId}"
+
+                            sh 'terraform init'
+                            sh """
+                            terraform apply -auto-approve \
+                            -var="region=${region}" \
+                            -var="domain_name=${domainName}" \
+                            -var="zone_id=${zoneId}" \
+                            -var="lambda_zip_file=../lambda_function.zip"
+                            """
+                        }
                     }
                 }
             }
@@ -112,12 +121,16 @@ pipeline {
                         // Store the outputs in environment variables
                         env.S3_BUCKET_NAME = s3_bucket_name
                         env.LAMBDA_ROLE_NAME = lambda_role_name
-
+                        env.AWS_REGION = region
+                        env.DOMAIN_NAME = domain_name
+                        env.CERTIFICATE_ARN = certificate_arn
 
                         // Debug environment variables
                         echo "Environment S3_BUCKET_NAME: ${env.S3_BUCKET_NAME}"
                         echo "Environment LAMBDA_ROLE_NAME: ${env.LAMBDA_ROLE_NAME}"
-
+                        echo "Environment AWS_REGION: ${env.AWS_REGION}"
+                        echo "Environment DOMAIN_NAME: ${env.DOMAIN_NAME}"
+                        echo "Environment CERTIFICATE_ARN: ${env.CERTIFICATE_ARN}"
                     }
                 }
             }
