@@ -80,14 +80,10 @@ pipeline {
                         sh 'pwd'
                         // Verify contents of the parent directory
                         sh 'ls -l ../'
-                        def region = params.AWS_DEFAULT_REGION
-                        if (!region) {
-                            error("AWS_DEFAULT_REGION is not set")
-                        }
                         sh 'terraform init'
                         sh """
                         terraform apply -auto-approve \
-                        -var="region=${region}" \
+                        -var="region=${params.AWS_DEFAULT_REGION}" \
                         -var="domain_name=${params.DOMAIN_NAME}" \
                         -var="zone_id=${params.ZONE_ID}" \
                         -var="lambda_zip_file=../lambda_function.zip"
