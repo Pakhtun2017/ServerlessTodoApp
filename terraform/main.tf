@@ -4,20 +4,20 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
-# Local variable to check if the DynamoDB table exists
-locals {
-  dynamodb_table_exists = try(length(data.aws_dynamodb_table.existing_table.id) > 0, false)
+# Check if DynamoDB table already exists
+data "aws_dynamodb_table" "existing_table" {
+  count = length(var.dynamodb_table_name) > 0 ? 1 : 0
+  name  = var.dynamodb_table_name
 }
 
-# Data source to check if the DynamoDB table already exists
-data "aws_dynamodb_table" "existing_table" {
-  name = var.dynamodb_table_name
-  count = length(var.dynamodb_table_name) > 0 ? 1 : 0
+# Local variable to check if the DynamoDB table exists
+locals {
+  dynamodb_table_exists = try(length(data.aws_dynamodb_table.existing_table[0].id) > 0, false)
 }
 
 # Create DynamoDB table if it does not exist
 resource "aws_dynamodb_table" "todo_table" {
-  count = local.dynamodb_table_exists ? 0 : 1
+  count        = local.dynamodb_table_exists ? 0 : 1
   name         = var.dynamodb_table_name
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "id"
@@ -44,15 +44,15 @@ resource "aws_s3_bucket" "s3_todo_bucket" {
   }
 }
 
-# Local variable to check if the IAM role exists
-locals {
-  iam_role_exists = try(length(data.aws_iam_role.existing_role.id) > 0, false)
+# Check if IAM Role already exists
+data "aws_iam_role" "existing_role" {
+  count = length("todo-app-lambda-role") > 0 ? 1 : 0
+  name  = "todo-app-lambda-role"
 }
 
-# Data source to check if the IAM role already exists
-data "aws_iam_role" "existing_role" {
-  name = "todo-app-lambda-role"
-  count = length("todo-app-lambda-role") > 0 ? 1 : 0
+# Local variable to check if the IAM role exists
+locals {
+  iam_role_exists = try(length(data.aws_iam_role.existing_role[0].id) > 0, false)
 }
 
 # IAM Role for Lambda
