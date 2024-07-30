@@ -1,5 +1,4 @@
 output "dynamodb_table_name" {
-  # condition ? value_if_true : value_if_false.
   value = length(aws_dynamodb_table.todo_table) > 0 ? aws_dynamodb_table.todo_table[0].name : "TodoItems"
 }
 
