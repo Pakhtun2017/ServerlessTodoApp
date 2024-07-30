@@ -63,6 +63,71 @@ pipeline {
                 }
             }
         }
+
+        stage('Terraform Init') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws_credentials_id',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    dir('terraform') {
+                        script {
+                            // Ensure parameters are set
+                            def region = params.AWS_DEFAULT_REGION
+                            def domainName = params.DOMAIN_NAME
+                            def zoneId = params.ZONE_ID
+
+                            if (!region || !domainName || !zoneId) {
+                                error("AWS_DEFAULT_REGION, DOMAIN_NAME, or ZONE_ID is not set")
+                            }
+
+                            // Debug output
+                            echo "Region: ${region}"
+                            echo "Domain Name: ${domainName}"
+                            echo "Zone ID: ${zoneId}"
+
+                            sh 'terraform init'
+                        }
+                    }
+                }
+            }
+        }
+        stage('Retrieve Terraform Outputs') {
+            steps {
+                script {
+                    dir('terraform') {
+                        def s3_bucket_name = sh(script: 'terraform output -raw s3_bucket_name', returnStdout: true).trim()
+                        def lambda_role_name = sh(script: 'terraform output -raw lambda_role_name', returnStdout: true).trim()
+                        def region = sh(script: 'terraform output -raw region', returnStdout: true).trim()
+                        def domain_name = sh(script: 'terraform output -raw domain_name', returnStdout: true).trim()
+                        def certificate_arn = sh(script: 'terraform output -raw certificate_arn', returnStdout: true).trim()
+
+                        // Debug output values
+                        echo "S3 Bucket Name: ${s3_bucket_name}"
+                        echo "Lambda Role Name: ${lambda_role_name}"
+                        echo "AWS Region: ${region}"
+                        echo "Domain Name: ${domain_name}"
+                        echo "Certificate ARN: ${certificate_arn}"
+
+                        // Store the outputs in environment variables
+                        env.S3_BUCKET_NAME = s3_bucket_name
+                        env.LAMBDA_ROLE_NAME = lambda_role_name
+                        env.AWS_REGION = region
+                        env.DOMAIN_NAME = domain_name
+                        env.CERTIFICATE_ARN = certificate_arn
+
+                        // Debug environment variables
+                        echo "Environment S3_BUCKET_NAME: ${env.S3_BUCKET_NAME}"
+                        echo "Environment LAMBDA_ROLE_NAME: ${env.LAMBDA_ROLE_NAME}"
+                        echo "Environment AWS_REGION: ${env.AWS_REGION}"
+                        echo "Environment DOMAIN_NAME: ${env.DOMAIN_NAME}"
+                        echo "Environment CERTIFICATE_ARN: ${env.CERTIFICATE_ARN}"
+                    }
+                }
+            }
+        }
         stage('Upload to S3') {
             steps {
                 withCredentials([[
@@ -81,7 +146,7 @@ pipeline {
                 }
             }
         }
-        stage('Terraform Init & Apply') {
+        stage('Terraform Apply Final') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -93,7 +158,6 @@ pipeline {
                         dir('terraform') {
                             // Apply Terraform configuration to create Lambda, API Gateway, and other resources
                             sh """
-							terraform init
                             terraform apply -auto-approve \
                             -var="region=${params.AWS_DEFAULT_REGION}" \
                             -var="domain_name=${params.DOMAIN_NAME}" \
