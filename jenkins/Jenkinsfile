@@ -64,7 +64,7 @@ pipeline {
             }
         }
 
-        stage('Terraform Init and Apply Initial') {
+        stage('Terraform Init') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -89,13 +89,6 @@ pipeline {
                             echo "Zone ID: ${zoneId}"
 
                             sh 'terraform init'
-                            sh """
-                            terraform apply -auto-approve \
-                            -var="region=${region}" \
-                            -var="domain_name=${domainName}" \
-                            -var="zone_id=${zoneId}" \
-                            -var="lambda_zip_file=../lambda_function.zip"
-                            """
                         }
                     }
                 }
