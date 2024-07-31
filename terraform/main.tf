@@ -197,10 +197,10 @@ resource "aws_lambda_function" "todo_lambda" {
   }
 }
 
-# check if api stage exists
+# Check if API Gateway REST API already exists
 data "aws_api_gateway_rest_api" "existing_api" {
   count = var.api_stage_exists ? 1 : 0
-  name = var.api_gateway_api_name
+  name  = var.api_gateway_api_name
 }
 
 locals {
@@ -209,28 +209,31 @@ locals {
 
 # API Gateway
 resource "aws_api_gateway_rest_api" "todo_api" {
-  count        = local.api_stage_exists ? 0 : 1
+  count       = local.api_stage_exists ? 0 : 1
   name        = var.api_gateway_api_name
   description = "API for Todo Application"
 }
 
 resource "aws_api_gateway_resource" "todo_resource" {
-  rest_api_id = aws_api_gateway_rest_api.todo_api.id
-  parent_id   = aws_api_gateway_rest_api.todo_api.root_resource_id
+  count       = local.api_stage_exists ? 0 : 1
+  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
+  parent_id   = aws_api_gateway_rest_api.todo_api[0].root_resource_id
   path_part   = "{proxy+}"
 }
 
 resource "aws_api_gateway_method" "proxy_method" {
-  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
-  resource_id   = aws_api_gateway_resource.todo_resource.id
-  http_method   = "ANY"
+  count       = local.api_stage_exists ? 0 : 1
+  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
+  resource_id = aws_api_gateway_resource.todo_resource[0].id
+  http_method = "ANY"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "proxy_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.todo_api.id
-  resource_id             = aws_api_gateway_resource.todo_resource.id
-  http_method             = aws_api_gateway_method.proxy_method.http_method
+  count       = local.api_stage_exists ? 0 : 1
+  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
+  resource_id = aws_api_gateway_resource.todo_resource[0].id
+  http_method = aws_api_gateway_method.proxy_method[0].http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.todo_lambda.arn}/invocations"
@@ -238,35 +241,38 @@ resource "aws_api_gateway_integration" "proxy_integration" {
 
 resource "aws_api_gateway_deployment" "todo_api_deployment" {
   depends_on  = [aws_api_gateway_integration.proxy_integration]
-  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
   stage_name  = "dev"
 }
 
 resource "aws_api_gateway_stage" "todo_stage" {
   stage_name    = "dev"
-  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  rest_api_id   = aws_api_gateway_rest_api.todo_api[0].id
   deployment_id = aws_api_gateway_deployment.todo_api_deployment.id
 }
 
 resource "aws_api_gateway_domain_name" "todo_domain" {
+  count = local.api_stage_exists ? 0 : 1
   domain_name     = var.domain_name
-  certificate_arn = length(aws_acm_certificate.cert) > 0 ? aws_acm_certificate.cert[0].arn : data.aws_acm_certificate.existing_cert.arn
+  certificate_arn = aws_acm_certificate.cert.arn
 }
 
 resource "aws_api_gateway_base_path_mapping" "todo_base_path_mapping" {
-  api_id      = aws_api_gateway_rest_api.todo_api.id
+  count = local.api_stage_exists ? 0 : 1
+  api_id      = aws_api_gateway_rest_api.todo_api[0].id
   stage_name  = aws_api_gateway_stage.todo_stage.stage_name
-  domain_name = aws_api_gateway_domain_name.todo_domain.domain_name
+  domain_name = aws_api_gateway_domain_name.todo_domain[0].domain_name
 }
 
 resource "aws_route53_record" "api" {
+  count = local.api_stage_exists ? 0 : 1
   zone_id = var.zone_id
   name    = var.domain_name
   type    = "A"
 
   alias {
-    name                   = aws_api_gateway_domain_name.todo_domain.cloudfront_domain_name
-    zone_id                = aws_api_gateway_domain_name.todo_domain.cloudfront_zone_id
+    name                   = aws_api_gateway_domain_name.todo_domain[0].cloudfront_domain_name
+    zone_id                = aws_api_gateway_domain_name.todo_domain[0].cloudfront_zone_id
     evaluate_target_health = false
   }
 }
