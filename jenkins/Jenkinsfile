@@ -63,8 +63,7 @@ pipeline {
                 }
             }
         }
-
-        stage('Terraform Init') {
+        stage('Terraform Init and Apply Initial') {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
@@ -73,23 +72,14 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     dir('terraform') {
-                        script {
-                            // Ensure parameters are set
-                            def region = params.AWS_DEFAULT_REGION
-                            def domainName = params.DOMAIN_NAME
-                            def zoneId = params.ZONE_ID
-
-                            if (!region || !domainName || !zoneId) {
-                                error("AWS_DEFAULT_REGION, DOMAIN_NAME, or ZONE_ID is not set")
-                            }
-
-                            // Debug output
-                            echo "Region: ${region}"
-                            echo "Domain Name: ${domainName}"
-                            echo "Zone ID: ${zoneId}"
-
-                            sh 'terraform init'
-                        }
+                        sh 'terraform init'
+                        sh """
+                        terraform apply -auto-approve \
+                        -var="region=${params.AWS_DEFAULT_REGION}" \
+                        -var="domain_name=${params.DOMAIN_NAME}" \
+                        -var="zone_id=${params.ZONE_ID}" \
+                        -var="lambda_zip_file=../lambda_function.zip"
+                        """
                     }
                 }
             }
