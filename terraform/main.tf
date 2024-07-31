@@ -254,7 +254,7 @@ resource "aws_api_gateway_stage" "todo_stage" {
 resource "aws_api_gateway_domain_name" "todo_domain" {
   count = local.api_stage_exists ? 0 : 1
   domain_name     = var.domain_name
-  certificate_arn = aws_acm_certificate.cert[0].arn
+  certificate_arn = aws_acm_certificate.cert.arn
 }
 
 resource "aws_api_gateway_base_path_mapping" "todo_base_path_mapping" {
