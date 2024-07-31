@@ -1,7 +1,7 @@
 variable "project_name" {
   description = "The name of the Project"
   type        = string
-  default     = "ServerlessTodoApp"
+  default     = "serverless-todo-app"
 }
 
 variable "region" {
