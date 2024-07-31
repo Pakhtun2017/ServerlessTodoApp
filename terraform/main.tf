@@ -138,7 +138,7 @@ data "aws_acm_certificate" "existing_cert" {
 }
 
 locals {
-  certificate_arn = var.certificate_exists ? data.aws_acm_certificate.cert[0].arn : ""
+  certificate_arn = var.certificate_exists ? data.aws_acm_certificate.existing_cert[0].arn : ""
 }
 
 # Conditionally create ACM certificate if it does not exist

@@ -11,7 +11,7 @@ output "s3_bucket_name" {
 }
 
 output "certificate_arn" {
-  value = length(aws_acm_certificate.cert) > 0 ? aws_acm_certificate.cert[0].arn : data.aws_acm_certificate.existing_cert.arn
+  value = length(aws_acm_certificate.cert) > 0 ? aws_acm_certificate.cert[0].arn : data.aws_acm_certificate.existing_cert[0].arn
 }
 
 output "region" {
