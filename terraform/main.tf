@@ -138,12 +138,12 @@ data "aws_acm_certificate" "existing_cert" {
 }
 
 locals {
-  certificate_exists = length(data.aws_acm_certificate.existing_cert.arn) > 0
+  certificate_arn = var.certificate_exists ? data.aws_acm_certificate.cert[0].arn : ""
 }
 
 # Conditionally create ACM certificate if it does not exist
 resource "aws_acm_certificate" "cert" {
-  count             = local.certificate_exists ? 0 : 1
+  count             = var.certificate_exists ? 0 : 1
   domain_name       = var.domain_name
   validation_method = "DNS"
 
