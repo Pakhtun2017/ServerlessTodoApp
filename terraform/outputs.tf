@@ -1,5 +1,5 @@
 output "dynamodb_table_name" {
-  value = length(aws_dynamodb_table.todo_table) > 0 ? aws_dynamodb_table.todo_table[0].name : "TodoItems"
+  value = length(aws_dynamodb_table.todo_table) > 0 ? aws_dynamodb_table.todo_table[0].name : data.aws_dynamodb_table.existing_table[0].name
 }
 
 output "iam_role_name" {
