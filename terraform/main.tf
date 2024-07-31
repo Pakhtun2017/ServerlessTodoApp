@@ -141,11 +141,6 @@ locals {
   certificate_arn = var.certificate_exists ? data.aws_acm_certificate.cert[0].arn : ""
 }
 
-resource "aws_api_gateway_domain_name" "todo_domain" {
-  domain_name     = var.domain_name
-  certificate_arn = local.certificate_arn
-}
-
 # Conditionally create ACM certificate if it does not exist
 resource "aws_acm_certificate" "cert" {
   count             = length(data.aws_acm_certificate.existing_cert.arn) > 0 ? 0 : 1
@@ -264,7 +259,7 @@ resource "aws_api_gateway_stage" "todo_stage" {
 resource "aws_api_gateway_domain_name" "todo_domain" {
   count = local.api_stage_exists ? 0 : 1
   domain_name     = var.domain_name
-  certificate_arn = aws_acm_certificate.cert.arn
+  certificate_arn = local.certificate_arn
 }
 
 resource "aws_api_gateway_base_path_mapping" "todo_base_path_mapping" {
