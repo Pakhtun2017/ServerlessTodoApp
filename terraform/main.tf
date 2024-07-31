@@ -204,7 +204,7 @@ data "aws_api_gateway_rest_api" "existing_api" {
 }
 
 locals {
-  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_api.existing_api) > 0
+  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_api) > 0
 }
 
 # API Gateway
