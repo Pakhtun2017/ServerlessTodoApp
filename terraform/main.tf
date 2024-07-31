@@ -4,15 +4,15 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
-# Check if DynamoDB table already exists
+# Check if the DynamoDB table exists
 data "aws_dynamodb_table" "existing_table" {
-  count = 1
+  count = var.dynamodb_table_exists ? 1 : 0
   name  = var.dynamodb_table_name
 }
 
 # Local variable to check if the DynamoDB table exists
 locals {
-  dynamodb_table_exists = try(length(data.aws_dynamodb_table.existing_table[0].id) > 0, false)
+  dynamodb_table_exists = length(data.aws_dynamodb_table.existing_table) > 0
 }
 
 # Create DynamoDB table if it does not exist
@@ -30,7 +30,7 @@ resource "aws_dynamodb_table" "todo_table" {
 
 # Check if IAM Role already exists
 data "aws_iam_role" "existing_role" {
-  count = 1
+  count = var.lambda_role_exists ? 1 : 0
   name  = var.lambda_role_name
 }
 

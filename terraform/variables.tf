@@ -21,6 +21,13 @@ variable "dynamodb_table_name" {
   default     = "TodoItems"
 }
 
+# Variable to define if DynamoDB table exists
+variable "dynamodb_table_exists" {
+  description = "Set to true if the DynamoDB table exists; otherwise, set to false."
+  type        = bool
+  default     = false
+}
+
 variable "lambda_app_name" {
   description = "The name of the Lambda function"
   type        = string
@@ -48,6 +55,12 @@ variable "lambda_role_name" {
   description = "Name of Lambda role"
   type        = string
   default     = "todo-app-lambda-role"
+}
+
+variable "lambda_role_exists" {
+  description = "Set to true if lambda role exists; otherwise, set to false."
+  type        = bool
+  default     = false
 }
 
 variable "lambda_s3_policy_name" {
