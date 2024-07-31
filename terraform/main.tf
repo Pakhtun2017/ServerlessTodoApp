@@ -197,8 +197,19 @@ resource "aws_lambda_function" "todo_lambda" {
   }
 }
 
+# check if api stage exists
+data "aws_api_gateway_rest_api" "existing_api" {
+  count = var.api_stage_exists ? 1 : 0
+  name = var.api_gateway_api_name
+}
+
+locals {
+  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_api.existing_api) > 0
+}
+
 # API Gateway
 resource "aws_api_gateway_rest_api" "todo_api" {
+  count        = local.api_stage_exists ? 0 : 1
   name        = var.api_gateway_api_name
   description = "API for Todo Application"
 }
