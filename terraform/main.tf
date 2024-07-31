@@ -132,8 +132,18 @@ resource "aws_s3_bucket" "s3_todo_bucket" {
 
 # Data source to check for existing ACM certificate
 data "aws_acm_certificate" "existing_cert" {
+  count    = var.certificate_exists ? 1 : 0
   domain   = var.domain_name
   statuses = ["ISSUED"]
+}
+
+locals {
+  certificate_arn = var.certificate_exists ? data.aws_acm_certificate.cert[0].arn : ""
+}
+
+resource "aws_api_gateway_domain_name" "todo_domain" {
+  domain_name     = var.domain_name
+  certificate_arn = local.certificate_arn
 }
 
 # Conditionally create ACM certificate if it does not exist

@@ -87,3 +87,8 @@ variable "api_stage_exists" {
   type        = bool
   default     = false
 }
+
+variable "certificate_exists" {
+  description = "A boolean to determine if the certificate exists"
+  default     = false
+}
