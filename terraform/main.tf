@@ -124,7 +124,7 @@ resource "aws_s3_bucket" "s3_todo_bucket" {
   force_destroy = true
 
   tags = {
-    Name        = "${var.project_name}-${var.environment}-bucket"
+    Name        = "${bucket}"
     Environment = var.environment
   }
 }
