@@ -131,7 +131,7 @@ resource "aws_s3_bucket" "s3_todo_bucket" {
 
 
 data "aws_acm_certificate" "existing_cert" {
-  count    = var.certificate_exists ? 1 : 0
+  count    = var.certificate_exists ? 0 : 1
   domain   = var.domain_name
   statuses = ["ISSUED"]
 }
