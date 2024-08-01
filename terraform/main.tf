@@ -261,18 +261,6 @@ resource "aws_api_gateway_deployment" "todo_api_deployment" {
 }
 
 
-The error you are encountering is due to referencing an element of an empty tuple. This typically happens when data.aws_api_gateway_rest_api.existing_stage has no elements, and thus trying to access [0] results in an invalid index.
-
-Here is the corrected approach:
-
-Ensure that the count is set appropriately.
-Use the length function without an index to check if the data source returns any results.
-Set the count of the resource based on whether the stage exists.
-Corrected Code:
-1. Checking if the API Stage exists:
-
-hcl
-Copy code
 # Check if the API Stage Name exists
 data "aws_api_gateway_rest_api" "existing_stage" {
   count = 1
