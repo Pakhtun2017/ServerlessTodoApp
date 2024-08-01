@@ -219,12 +219,12 @@ data "aws_api_gateway_rest_api" "existing_api" {
 
 # and sets a local variable accordingly.
 locals {
-  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_api) > 0
+  api_exists = length(data.aws_api_gateway_rest_api.existing_api) > 0
 }
 
 # Create API Gateway REST API if it Does Not Exist
 resource "aws_api_gateway_rest_api" "todo_api" {
-  count       = local.api_stage_exists ? 0 : 1
+  count       = local.api_exists ? 0 : 1
   name        = var.api_gateway_api_name
   description = "API for Todo Application"
 }
@@ -260,14 +260,19 @@ resource "aws_api_gateway_deployment" "todo_api_deployment" {
   stage_name  = "dev"
 }
 
-data "aws_api_gateway_stage" "existing_stage" {
-  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
-  stage_name  = "dev"
+# Check if the API Stage Name exists
+data "aws_api_gateway_rest_api" "existing_stage" {
+  count = var.api_stage_exists ? 1 : 0
+  name  = var.stage_name
+}
+
+# Local variable to check if the DynamoDB table exists
+locals {
+  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_stage[0]) > 0
 }
 
 resource "aws_api_gateway_stage" "todo_stage" {
-  count       = length(data.aws_api_gateway_stage.existing_stage.stage_name) > 0 ? 0 : 1
-  stage_name  = "dev"
+   stage_name  = var.stage_name
   rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
   deployment_id = aws_api_gateway_deployment.todo_api_deployment.id
 }
