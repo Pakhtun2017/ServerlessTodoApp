@@ -131,18 +131,19 @@ resource "aws_s3_bucket" "s3_todo_bucket" {
 
 
 data "aws_acm_certificate" "existing_cert" {
+  count    = var.certificate_exists ? 1 : 0
   domain   = var.domain_name
   statuses = ["ISSUED"]
 }
 
 locals {
-  certificate_exists = length(data.aws_acm_certificate.existing_cert.arn) > 0
+  certificate_exists = length(data.aws_acm_certificate.existing_cert[0].arn) > 0
 }
 
 # This local variable sets certificate_arn to the ARN of the existing 
 # certificate if it exists; otherwise, it sets it to an empty string.
 locals {
-  certificate_arn = certificate_exists ? data.aws_acm_certificate.existing_cert[0].arn : ""
+  certificate_arn = var.certificate_exists ? data.aws_acm_certificate.existing_cert[0].arn : ""
 }
 
 # This resource block creates a new ACM certificate if 
