@@ -130,20 +130,26 @@ resource "aws_s3_bucket" "s3_todo_bucket" {
 }
 
 
-# Data source to check for existing ACM certificate
 data "aws_acm_certificate" "existing_cert" {
-  count    = var.certificate_exists ? 1 : 0
   domain   = var.domain_name
   statuses = ["ISSUED"]
 }
 
 locals {
-  certificate_arn = var.certificate_exists ? data.aws_acm_certificate.existing_cert[0].arn : ""
+  certificate_exists = length(data.aws_acm_certificate.existing_cert.arn) > 0
 }
 
+# This local variable sets certificate_arn to the ARN of the existing 
+# certificate if it exists; otherwise, it sets it to an empty string.
+locals {
+  certificate_arn = certificate_exists ? data.aws_acm_certificate.existing_cert[0].arn : ""
+}
+
+# This resource block creates a new ACM certificate if 
+# var.certificate_exists is false.
 # Conditionally create ACM certificate if it does not exist
 resource "aws_acm_certificate" "cert" {
-  count             = var.certificate_exists ? 0 : 1
+  count             = local.certificate_exists ? 0 : 1
   domain_name       = var.domain_name
   validation_method = "DNS"
 
@@ -156,12 +162,15 @@ resource "aws_acm_certificate" "cert" {
   }
 }
 
-# Create a list of DNS validation records if certificate is created
+# This local variable sets cert_validation_options to the 
+# validation options of the created ACM certificate if it exists; 
+# otherwise, it sets it to an empty list.
 locals {
   cert_validation_options = length(aws_acm_certificate.cert) > 0 ? aws_acm_certificate.cert[0].domain_validation_options : []
 }
 
-# Route 53 record for certificate validation
+# This block creates Route 53 DNS validation records for 
+# each domain validation option if the certificate was created.
 resource "aws_route53_record" "cert_validation" {
   for_each = { for dvo in local.cert_validation_options : dvo.domain_name => {
     name    = dvo.resource_record_name
@@ -177,7 +186,6 @@ resource "aws_route53_record" "cert_validation" {
   ttl     = 60
 }
 
-# Validate the ACM certificate if created
 resource "aws_acm_certificate_validation" "cert" {
   count                   = length(aws_acm_certificate.cert) > 0 ? 1 : 0
   certificate_arn         = aws_acm_certificate.cert[0].arn
@@ -202,17 +210,18 @@ resource "aws_lambda_function" "todo_lambda" {
   }
 }
 
-# Check if API Gateway REST API already exists
+# This block checks if an API Gateway REST API with the specified name exists 
 data "aws_api_gateway_rest_api" "existing_api" {
   count = var.api_stage_exists ? 1 : 0
   name  = var.api_gateway_api_name
 }
 
+# and sets a local variable accordingly.
 locals {
   api_stage_exists = length(data.aws_api_gateway_rest_api.existing_api) > 0
 }
 
-# API Gateway
+# Create API Gateway REST API if it Does Not Exist
 resource "aws_api_gateway_rest_api" "todo_api" {
   count       = local.api_stage_exists ? 0 : 1
   name        = var.api_gateway_api_name
@@ -227,18 +236,18 @@ resource "aws_api_gateway_resource" "todo_resource" {
 }
 
 resource "aws_api_gateway_method" "proxy_method" {
-  count       = local.api_stage_exists ? 0 : 1
-  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
-  resource_id = aws_api_gateway_resource.todo_resource[0].id
-  http_method = "ANY"
+  count         = local.api_stage_exists ? 0 : 1
+  rest_api_id   = aws_api_gateway_rest_api.todo_api[0].id
+  resource_id   = aws_api_gateway_resource.todo_resource[0].id
+  http_method   = "ANY"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "proxy_integration" {
-  count       = local.api_stage_exists ? 0 : 1
-  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
-  resource_id = aws_api_gateway_resource.todo_resource[0].id
-  http_method = aws_api_gateway_method.proxy_method[0].http_method
+  count                   = local.api_stage_exists ? 0 : 1
+  rest_api_id             = aws_api_gateway_rest_api.todo_api[0].id
+  resource_id             = aws_api_gateway_resource.todo_resource[0].id
+  http_method             = aws_api_gateway_method.proxy_method[0].http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.todo_lambda.arn}/invocations"
@@ -257,20 +266,20 @@ resource "aws_api_gateway_stage" "todo_stage" {
 }
 
 resource "aws_api_gateway_domain_name" "todo_domain" {
-  count = local.api_stage_exists ? 0 : 1
+  count           = local.api_stage_exists ? 0 : 1
   domain_name     = var.domain_name
   certificate_arn = local.certificate_arn
 }
 
 resource "aws_api_gateway_base_path_mapping" "todo_base_path_mapping" {
-  count = local.api_stage_exists ? 0 : 1
+  count       = local.api_stage_exists ? 0 : 1
   api_id      = aws_api_gateway_rest_api.todo_api[0].id
   stage_name  = aws_api_gateway_stage.todo_stage.stage_name
   domain_name = aws_api_gateway_domain_name.todo_domain[0].domain_name
 }
 
 resource "aws_route53_record" "api" {
-  count = local.api_stage_exists ? 0 : 1
+  count   = local.api_stage_exists ? 0 : 1
   zone_id = var.zone_id
   name    = var.domain_name
   type    = "A"
