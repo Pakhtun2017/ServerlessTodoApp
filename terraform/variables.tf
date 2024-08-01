@@ -81,6 +81,13 @@ variable "api_gateway_api_name" {
   default     = "TodoAPI"
 }
 
+# Variable to define if API exists
+variable "api_exists" {
+  description = "Set to true if the API exists; otherwise, set to false."
+  type        = bool
+  default     = false
+}
+
 variable "stage_name" {
   description = "API Gateway API Stage name"
   type        = string
