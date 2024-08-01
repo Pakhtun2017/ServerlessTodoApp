@@ -260,19 +260,33 @@ resource "aws_api_gateway_deployment" "todo_api_deployment" {
   stage_name  = "dev"
 }
 
+
+The error you are encountering is due to referencing an element of an empty tuple. This typically happens when data.aws_api_gateway_rest_api.existing_stage has no elements, and thus trying to access [0] results in an invalid index.
+
+Here is the corrected approach:
+
+Ensure that the count is set appropriately.
+Use the length function without an index to check if the data source returns any results.
+Set the count of the resource based on whether the stage exists.
+Corrected Code:
+1. Checking if the API Stage exists:
+
+hcl
+Copy code
 # Check if the API Stage Name exists
 data "aws_api_gateway_rest_api" "existing_stage" {
-  count = var.api_stage_exists ? 1 : 0
-  name  = var.stage_name
+  count = 1
+  name  = var.api_gateway_api_name
 }
 
-# Local variable to check if the DynamoDB table exists
+# Local variable to check if the API stage exists
 locals {
-  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_stage[0]) > 0
+  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_stage) > 0
 }
 
 resource "aws_api_gateway_stage" "todo_stage" {
-   stage_name  = var.stage_name
+  count        = local.api_stage_exists ? 0 : 1
+  stage_name  = var.stage_name
   rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
   deployment_id = aws_api_gateway_deployment.todo_api_deployment.id
 }
