@@ -213,9 +213,10 @@ resource "aws_lambda_function" "todo_lambda" {
 
 # This block checks if an API Gateway REST API with the specified name exists 
 data "aws_api_gateway_rest_api" "existing_api" {
-  count = var.api_exists ? 1 : 0
+  count = 1
   name  = var.api_gateway_api_name
 }
+
 
 # and sets a local variable accordingly.
 locals {
