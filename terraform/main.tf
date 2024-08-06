@@ -265,7 +265,7 @@ resource "aws_api_gateway_deployment" "todo_api_deployment" {
 # Check if the API Stage Name exists
 data "aws_api_gateway_rest_api" "existing_stage" {
   count = 1
-  name  = var.api_gateway_api_name
+  name  = var.stage_name
 }
 
 # Local variable to check if the API stage exists
