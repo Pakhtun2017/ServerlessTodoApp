@@ -211,45 +211,29 @@ resource "aws_lambda_function" "todo_lambda" {
   }
 }
 
-# This block checks if an API Gateway REST API with the specified name exists 
-data "aws_api_gateway_rest_api" "existing_api" {
-  count = 1
-  name  = var.api_gateway_api_name
-}
 
-
-# and sets a local variable accordingly.
-locals {
-  api_exists = length(data.aws_api_gateway_rest_api.existing_api) > 0
-}
-
-# Create API Gateway REST API if it Does Not Exist
 resource "aws_api_gateway_rest_api" "todo_api" {
-  count       = local.api_exists ? 0 : 1
   name        = var.api_gateway_api_name
   description = "API for Todo Application"
 }
 
 resource "aws_api_gateway_resource" "todo_resource" {
-  count       = local.api_stage_exists ? 0 : 1
-  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
-  parent_id   = aws_api_gateway_rest_api.todo_api[0].root_resource_id
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
+  parent_id   = aws_api_gateway_rest_api.todo_api.root_resource_id
   path_part   = "{proxy+}"
 }
 
 resource "aws_api_gateway_method" "proxy_method" {
-  count         = local.api_stage_exists ? 0 : 1
-  rest_api_id   = aws_api_gateway_rest_api.todo_api[0].id
-  resource_id   = aws_api_gateway_resource.todo_resource[0].id
+  rest_api_id   = aws_api_gateway_rest_api.todo_api.id
+  resource_id   = aws_api_gateway_resource.todo_resource.id
   http_method   = "ANY"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "proxy_integration" {
-  count                   = local.api_stage_exists ? 0 : 1
-  rest_api_id             = aws_api_gateway_rest_api.todo_api[0].id
-  resource_id             = aws_api_gateway_resource.todo_resource[0].id
-  http_method             = aws_api_gateway_method.proxy_method[0].http_method
+  rest_api_id             = aws_api_gateway_rest_api.todo_api.id
+  resource_id             = aws_api_gateway_resource.todo_resource.id
+  http_method             = aws_api_gateway_method.proxy_method.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${aws_lambda_function.todo_lambda.arn}/invocations"
@@ -257,54 +241,32 @@ resource "aws_api_gateway_integration" "proxy_integration" {
 
 resource "aws_api_gateway_deployment" "todo_api_deployment" {
   depends_on  = [aws_api_gateway_integration.proxy_integration]
-  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
+  rest_api_id = aws_api_gateway_rest_api.todo_api.id
   stage_name  = "dev"
 }
 
-
-# Check if the API Stage Name exists
-data "aws_api_gateway_rest_api" "existing_stage" {
-  count = 1
-  name  = var.stage_name
-}
-
-# Local variable to check if the API stage exists
-locals {
-  api_stage_exists = length(data.aws_api_gateway_rest_api.existing_stage) > 0
-}
-
-resource "aws_api_gateway_stage" "todo_stage" {
-  count        = local.api_stage_exists ? 0 : 1
-  stage_name  = var.stage_name
-  rest_api_id = aws_api_gateway_rest_api.todo_api[0].id
-  deployment_id = aws_api_gateway_deployment.todo_api_deployment.id
-}
-
 resource "aws_api_gateway_domain_name" "todo_domain" {
-  count = local.api_stage_exists ? 0 : 1
   domain_name     = var.domain_name
-  certificate_arn = local.certificate_arn
+  certificate_arn = var.certificate_arn
   endpoint_configuration {
     types = ["EDGE"]
   }
 }
 
 resource "aws_api_gateway_base_path_mapping" "todo_base_path_mapping" {
-  count       = local.api_stage_exists ? 0 : 1
-  api_id      = aws_api_gateway_rest_api.todo_api[0].id
-  stage_name  = aws_api_gateway_stage.todo_stage[0].stage_name
-  domain_name = aws_api_gateway_domain_name.todo_domain[0].domain_name
+  api_id      = aws_api_gateway_rest_api.todo_api.id
+  stage_name  = aws_api_gateway_deployment.todo_api_deployment.stage_name
+  domain_name = aws_api_gateway_domain_name.todo_domain.domain_name
 }
 
 resource "aws_route53_record" "api" {
-  count   = local.api_stage_exists ? 0 : 1
   zone_id = var.zone_id
   name    = var.domain_name
   type    = "A"
 
   alias {
-    name                   = aws_api_gateway_domain_name.todo_domain[0].cloudfront_domain_name
-    zone_id                = aws_api_gateway_domain_name.todo_domain[0].cloudfront_zone_id
+    name                   = aws_api_gateway_domain_name.todo_domain.cloudfront_domain_name
+    zone_id                = aws_api_gateway_domain_name.todo_domain.cloudfront_zone_id
     evaluate_target_health = false
   }
 }

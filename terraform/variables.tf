@@ -7,6 +7,7 @@ variable "project_name" {
 variable "region" {
   description = "The AWS region where resources are created"
   type        = string
+  default = "us-east-1"
 }
 
 variable "environment" {
@@ -37,6 +38,7 @@ variable "lambda_app_name" {
 variable "lambda_zip_file" {
   description = "Path to the lambda function zip file"
   type        = string
+  default = "lambda_function.zip"
 }
 
 variable "domain_name" {
@@ -104,4 +106,10 @@ variable "api_stage_exists" {
 variable "certificate_exists" {
   description = "A boolean to determine if the certificate exists"
   default     = false
+}
+
+variable "certificate_arn" {
+  description = "ARN of the certificate"
+  type        = string
+  default = "arn:aws:acm:us-east-1:395349209468:certificate/82e1603b-f7ff-4661-87e7-9fc3cb3bff59"
 }
