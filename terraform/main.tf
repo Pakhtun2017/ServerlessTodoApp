@@ -129,6 +129,15 @@ resource "aws_s3_bucket" "s3_todo_bucket" {
   }
 }
 
+terraform {
+  backend "s3" {
+    bucket         = "pashtun-state-bucket"  
+    key            = "terraform/my-project/terraform.tfstate"  
+    region         = "us-east-1"  
+    dynamodb_table = "terraform-lock-table" 
+    encrypt        = true  
+  }
+}
 
 data "aws_acm_certificate" "existing_cert" {
   count    = var.certificate_exists ? 0 : 1
@@ -268,5 +277,9 @@ resource "aws_route53_record" "api" {
     name                   = aws_api_gateway_domain_name.todo_domain.cloudfront_domain_name
     zone_id                = aws_api_gateway_domain_name.todo_domain.cloudfront_zone_id
     evaluate_target_health = false
+  }
+
+    lifecycle {
+    prevent_destroy = true
   }
 }
