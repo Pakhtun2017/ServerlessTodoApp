@@ -73,7 +73,7 @@ pipeline {
                 ]]) {
                     dir('terraform') {
                         sh '''
-                        terraform init -backend-config="bucket=pashtun-state-bucket" \
+                        terraform init -input=false -backend-config="bucket=pashtun-state-bucket" \
                         -backend-config="key=terraform/my-project/terraform.tfstate" \
                         -backend-config="region=us-east-1" \
                         -backend-config="dynamodb_table=terraform-lock-table"
