@@ -72,7 +72,12 @@ pipeline {
                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
                 ]]) {
                     dir('terraform') {
-                        sh 'terraform init'
+                        sh '''
+                        terraform init -backend-config="bucket=pashtun-state-bucket" \
+                        -backend-config="key=terraform/my-project/terraform.tfstate" \
+                        -backend-config="region=us-east-1" \
+                        -backend-config="dynamodb_table=terraform-lock-table"
+                        '''
                         sh """
                         terraform apply -auto-approve \
                         -var="region=${params.AWS_DEFAULT_REGION}" \
