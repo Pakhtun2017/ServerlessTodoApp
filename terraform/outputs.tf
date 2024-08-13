@@ -19,11 +19,11 @@ output "region" {
 }
 
 output "lambda_role_arn" {
-  value = length(aws_iam_role.lambda_exec) > 0 ? aws_iam_role.lambda_exec[0].arn : data.aws_iam_role.existing_role[0].arn
+  value = length(aws_iam_role.lambda_exec) > 0 ? aws_iam_role.lambda_exec.arn : data.aws_iam_role.existing_role[0].arn
 }
 
 output "lambda_role_name" {
-  value = length(aws_iam_role.lambda_exec) > 0 ? aws_iam_role.lambda_exec[0].name : data.aws_iam_role.existing_role[0].name
+  value = length(aws_iam_role.lambda_exec) > 0 ? aws_iam_role.lambda_exec.name : data.aws_iam_role.existing_role[0].name
 }
 
 output "domain_name" {
