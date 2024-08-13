@@ -221,7 +221,7 @@ resource "aws_acm_certificate_validation" "cert" {
 # Lambda Function
 resource "aws_lambda_function" "todo_lambda" {
   function_name    = var.lambda_app_name
-  role             = aws_iam_role.lambda_exec[0].arn
+  role             = local.iam_role_exists ? data.aws_iam_role.existing_role.arn : aws_iam_role.lambda_exec[0].arn
   handler          = "lambda_function.lambda_handler"
   runtime          = "python3.12"
   timeout          = 30
