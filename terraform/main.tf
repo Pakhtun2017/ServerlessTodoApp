@@ -45,17 +45,14 @@ resource "aws_dynamodb_table" "todo_table" {
   }
 }
 
-
-
 # Check if IAM Role already exists
 data "aws_iam_role" "existing_role" {
-  count = var.lambda_role_exists ? 1 : 0
   name  = var.lambda_role_name
 }
 
 # Local variable to check if the IAM role exists
 locals {
-  iam_role_exists = try(length(data.aws_iam_role.existing_role[0].id) > 0, false)
+  iam_role_exists = try(length(data.aws_iam_role.existing_role.id) > 0, false)
 }
 
 # Create IAM Role for Lambda if it does not exist
