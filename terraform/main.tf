@@ -6,16 +6,29 @@ data "aws_caller_identity" "current" {}
 
 # Check if the DynamoDB table exists
 data "aws_dynamodb_table" "existing_table" {
-  count = var.dynamodb_table_exists ? 1 : 0
+  # count = var.dynamodb_table_exists ? 1 : 0
   name  = var.dynamodb_table_name
 }
 
 # Local variable to check if the DynamoDB table exists
 locals {
-  dynamodb_table_exists = length(data.aws_dynamodb_table.existing_table) > 0
+  # dynamodb_table_exists = length(data.aws_dynamodb_table.existing_table) > 0
+   dynamodb_table_exists = try(length(data.aws_dynamodb_table.existing_table.id) > 0, false)
 }
 
 # Create DynamoDB table if it does not exist
+# resource "aws_dynamodb_table" "todo_table" {
+#   count        = local.dynamodb_table_exists ? 0 : 1
+#   name         = var.dynamodb_table_name
+#   billing_mode = "PAY_PER_REQUEST"
+#   hash_key     = "id"
+
+#   attribute {
+#     name = "id"
+#     type = "S"
+#   }
+# }
+# Step 3: Use the existence variable to control whether to create the table
 resource "aws_dynamodb_table" "todo_table" {
   count        = local.dynamodb_table_exists ? 0 : 1
   name         = var.dynamodb_table_name
@@ -26,7 +39,13 @@ resource "aws_dynamodb_table" "todo_table" {
     name = "id"
     type = "S"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
+
+
 
 # Check if IAM Role already exists
 data "aws_iam_role" "existing_role" {
