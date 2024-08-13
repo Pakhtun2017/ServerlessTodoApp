@@ -91,6 +91,12 @@ pipeline {
         }
         stage('Retrieve Terraform Outputs') {
             steps {
+               withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws_credentials_id',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]])
                 script {
                     dir('terraform') {
                         def s3_bucket_name = sh(script: 'terraform output -raw s3_bucket_name', returnStdout: true).trim()
